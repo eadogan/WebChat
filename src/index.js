@@ -1,30 +1,41 @@
-'use strict'
-
-// Loading dependency & initizlizing express
-const os = require('os')
 const express = require('express')
-const http = require('http')
-const path = require('path')
-
-const publicDirectoryPath = path.join(__dirname, '../public')
-
 const app = express()
+const server = require('http').Server(app)
+const io = require('socket.io')(server)
+const { v4: uuidv4 } = require('uuid')
 
-// Signaling WebRTC
-const socketIO = require('socket.io')
+// Create dynamic id connection between diffirent user
+const { ExpressPeerServer } = require('peer') 
+const peerServer = ExpressPeerServer(server, {
+    debug:true
+})
 
+app.set('view engine', 'ejs')
+app.use('/peer', peerServer)
+const path = require('path')
+const publicDirectoryPath = path.join(__dirname, '../public')
 // Define the folder which cointans the CSS and JS for the frontend
 app.use(express.static(publicDirectoryPath))
 
-app.use('/', (req, res) => {
-    res.render('index.ejs')
+app.get('/', (req, res) => {
+    res.redirect(`/${uuidv4()}`)
 })
 
-const server = http.createServer(app)
+app.get('/:room', (req, res) => {
+    res.render('room', { roomId: req.params.room })
+})
 
+io.on('connection', (socket) => {
+    socket.on('join-room', (roomId, userId) => {
+        socket.join(roomId)
+        socket.broadcast.to(roomId).emit('user-connected', userId)
+        // socket.on('message', (message) => {
+        //     io.to(roomId).emit('createMessage', message, userName)
+        // })
+    })
+})
 
 const port = process.env.PORT || 3000
-
 server.listen(port, () => {
     console.log(`Server is on port ${port}`)
 })
