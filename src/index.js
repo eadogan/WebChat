@@ -21,12 +21,7 @@ app.use('/', (req, res) => {
 })
 
 const server = http.createServer(app)
-const io = socketIO(server)
 
-
-io.on('connection', (server) => {
-    console.log('A new user has connected!')
-})
 
 const port = process.env.PORT || 3000
 
